@@ -1,0 +1,27 @@
+# Node modules
+node_modules/
+
+# Build output
+build/
+dist/
+
+# Temporary files
+*.tmp
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
+# IDE specific files
+.idea/
+.vscode/
+
+# Coverage directory used by testing tools
+coverage/
+
+# Yarn
+yarn.lock
