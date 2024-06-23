@@ -1,8 +1,5 @@
-// client/src/pages/View.jsx
-
-import React, { useContext, useState } from "react";
+import React, {  useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import useFetch from "../useFetch";
 import {
   faCalendar,
   faMapLocationDot,
@@ -13,21 +10,47 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "../styles/view.css";
 import axios from "axios";
-import { AuthContext } from "../authContext";
 
 const View = () => {
   const location = useLocation();
   const id = location.pathname.split("/")[2];
-  const { user } = useContext(AuthContext);
-  const { data } = useFetch(`/entries/${id}`);
+
+  // State to handle fetched data
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [slideNumber, setSlideNumber] = useState(0);
 
   const navigate = useNavigate();
 
-  const handleDelete = async (id) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5500/api/entries/${id}`,
+          {
+            credentials: "include",
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const result = await response.json();
+        console.log(result.photos)
+        setData(result);
+      } catch (error) {
+        setError(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  const handleDelete = async () => {
     try {
       await axios.delete(`http://localhost:5500/api/entries/${data._id}`);
-
       navigate("/");
     } catch (err) {
       console.log(err);
@@ -44,6 +67,14 @@ const View = () => {
     }
     setSlideNumber(newSlideNumber);
   };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error loading data</div>;
+  }
 
   return (
     <div className="view">
@@ -64,11 +95,10 @@ const View = () => {
 
       <div className="postContainer">
         <div className="leftContainer">
-          {data.photos ? (
+          {data.photos && data.photos.length > 0 ? (
             <div className="images">
               <img src={data.photos[slideNumber]} height="300px" alt="" />
-
-              {data.photos.length > 1 ? (
+              {data.photos.length > 1 && (
                 <div className="arrows">
                   <FontAwesomeIcon
                     icon={faCircleArrowLeft}
@@ -81,12 +111,10 @@ const View = () => {
                     onClick={() => handleMove("r")}
                   />
                 </div>
-              ) : (
-                ""
               )}
             </div>
           ) : (
-            "no Images"
+            "No Images"
           )}
         </div>
 

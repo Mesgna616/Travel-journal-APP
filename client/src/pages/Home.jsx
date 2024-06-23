@@ -1,24 +1,66 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import useFetch from "../useFetch";
+
 import { AuthContext } from "../authContext";
 import "../styles/home.css";
 import Card from "../components/Card";
-
 const Home = () => {
   const [query, setQuery] = useState("");
   const { user } = useContext(AuthContext);
-  const { data, loading } = useFetch(`/entries/author/${user._id}`);
+
+  // State to handle fetched data
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    console.log("User:", user); // Debugging user object
+    if (user && user._id) {
+      const fetchData = async () => {
+        try {
+          const response = await fetch(
+            `http://localhost:5500/api/entries/author/${user._id}`,
+            {
+              credentials: "include",
+            }
+          );
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const result = await response.json();
+          setData(result);
+        } catch (error) {
+          setError(error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchData();
+    }
+  }, [user]); // Fetch data only when user is available
+
+  useEffect(() => {
+    console.log("Fetched data:", data);
+  }, [data]);
 
   const keys = ["title", "location", "date"];
 
   const search = (data) => {
     return data.filter((item) =>
-      keys.some((key) => item[key] && item[key].toLowerCase().includes(query.toLowerCase()))
+      keys.some(
+        (key) =>
+          item[key] && item[key].toLowerCase().includes(query.toLowerCase())
+      )
     );
   };
+
+  if (error) {
+    console.error("Error fetching data:", error);
+    return <div>Error loading data</div>;
+  }
 
   return (
     <div>
@@ -49,9 +91,9 @@ const Home = () => {
             Loading...
           </div>
         ) : (
-          search(data)?.map((item) => (
+          search(data).map((item) => (
             <Card
-              key={item._id} // Use the unique _id property as the key
+              key={item._id}
               _id={item._id}
               photos={item.photos}
               title={item.title}

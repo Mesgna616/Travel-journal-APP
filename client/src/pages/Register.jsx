@@ -27,11 +27,11 @@ function Register() {
       const data = new FormData();
 
       data.append("file", file);
-      data.append("upload_preset", "upload");
+      data.append("upload_preset", "mesgna");
 
       try {
         const uploadRes = await axios.post(
-          "https://api.cloudinary.com/v1_1/<your_cloudinary_key>/image/upload",
+          "https://api.cloudinary.com/v1_1/mesgna/image/upload",
           data,
           { withcredentials: false }
         );

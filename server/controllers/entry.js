@@ -1,79 +1,104 @@
-import Entry from "../models/Entry.js"
-import User from "../models/User.js"
+// controllers/entry.js
 
-export const createEntry = async (req, res, next) => { 
+import Entry from "../models/Entry.js";
+import User from "../models/User.js";
+import mongoose from "mongoose";
 
-	const newEntry = new Entry(req.body); 
-	try { 
-	const savedEntry = await newEntry.save(); 
-		
-	try { 
-		const user = await User.findById(savedEntry.author); 
-		user.entries.push(savedEntry._id); 
-		await user.save(); 
-	} 
-	catch(err) { 
-		next(err) 
-	} 
-	res.status(200).json(savedEntry); 
-	} catch (err) { 
-	next(err); 
-	} 
-}; 
-	
-export const updateEntry = async (req, res, next) => { 
-	try { 
-	const entry = await Entry.findByIdAndUpdate( 
-		req.params.id, 
-		{ $set: req.body }, 
-		{ new: true } 
-	); 
-	res.status(200).json(entry); 
-	} catch (err) { 
-	next(err); 
-	} 
-}; 
-	
-export const deleteEntry = async (req, res, next) => { 
-	try { 
-	await Entry.findByIdAndDelete(req.params.id); 
-		
-	try { 
+export const createEntry = async (req, res, next) => {
+  try {
+    const newEntry = new Entry(req.body);
+    const savedEntry = await newEntry.save();
 
-		await User.findOneAndUpdate( 
-			{ entries: req.params.id }, // Find the user who has the entry id in their entries array 
-			{ $pull: { entries: req.params.id } }, // Remove the entry id from the entries array 
-			{ new: true } 
-		); 
-	} 
+    const user = await User.findById(savedEntry.author);
+    if (!user) {
+      throw new Error("User not found");
+    }
 
-	catch(err) { 
-		next(err) 
-	} 
-		
-	res.status(200).json("the entry has been deleted"); 
-	} catch (err) { 
-	next(err); 
-	} 
-}; 
-	
-	
-export const getEntries = async (req, res, next) => { 
-	const userId = req.params.userId; 
-	try { 
-	const entries = await Entry.find({ author: userId }) 
-	res.status(200).json(entries); 
-	} catch (err) { 
-	next(err) 
-	} 
-} 
+    user.entries.push(savedEntry._id);
+    await user.save();
 
-export const getEntry = async(req, res, next) => { 
-	try{ 
-		const entry = await Entry.findById(req.params.id); 
-		res.status(200).json(entry); 
-	} 
-	catch(err) { 
-		next(err); 
-	} 
-} 
+    res.status(200).json(savedEntry);
+  } catch (err) {
+    next(err); // Pass error to Express error handler
+  }
+};
+
+export const updateEntry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ error: "Invalid entry ID" });
+    }
+
+    const updatedEntry = await Entry.findByIdAndUpdate(
+      id,
+      { $set: req.body },
+      { new: true }
+    );
+
+    if (!updatedEntry) {
+      return res.status(404).json({ error: "Entry not found" });
+    }
+
+    res.status(200).json(updatedEntry);
+  } catch (err) {
+    next(err); // Pass error to Express error handler
+  }
+};
+
+export const deleteEntry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ error: "Invalid entry ID" });
+    }
+
+    const deletedEntry = await Entry.findByIdAndDelete(id);
+
+    if (!deletedEntry) {
+      return res.status(404).json({ error: "Entry not found" });
+    }
+
+    await User.findOneAndUpdate(
+      { entries: id },
+      { $pull: { entries: id } },
+      { new: true }
+    );
+
+    res.status(200).json({ message: "The entry has been deleted" });
+  } catch (err) {
+    next(err); // Pass error to Express error handler
+  }
+};
+
+export const getEntries = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    if (!mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    const entries = await Entry.find({ author: userId });
+    res.status(200).json(entries);
+  } catch (err) {
+    next(err); // Pass error to Express error handler
+  }
+};
+
+export const getEntry = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ error: "Invalid entry ID" });
+    }
+
+    const entry = await Entry.findById(id);
+    if (!entry) {
+      return res.status(404).json({ error: "Entry not found" });
+    }
+
+    res.status(200).json(entry);
+  } catch (err) {
+    next(err); // Pass error to Express error handler
+  }
+};

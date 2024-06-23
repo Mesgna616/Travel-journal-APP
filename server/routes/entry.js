@@ -1,3 +1,5 @@
+// routes/entry.js
+
 import express from "express";
 import {
   createEntry,
@@ -9,10 +11,11 @@ import {
 
 const router = express.Router();
 
-router.post("/", createEntry);
-router.put("/:id", updateEntry);
-router.delete("/:id", deleteEntry);
-router.get("/author/:userId", getEntries);
-router.get("/:id", getEntry);
+// Define routes for CRUD operations
+router.post("/", createEntry);           // Create new entry
+router.put("/:id", updateEntry);         // Update existing entry
+router.delete("/:id", deleteEntry);      // Delete entry
+router.get("/author/:userId", getEntries); // Get entries by author ID
+router.get("/:id", getEntry);            // Get entry by ID
 
 export default router;

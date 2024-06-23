@@ -1,5 +1,3 @@
-// client/src/pages/Create.jsx
-
 import React, { useContext, useState } from "react";
 import axios from "axios";
 import { AuthContext } from "../authContext";
@@ -8,52 +6,46 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import "../styles/create.css";
 
 const Create = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [files, setFiles] = useState("");
+  const [files, setFiles] = useState([]);
   const [info, setInfo] = useState({});
 
-  // set the usestate to the data user passed
   const handleChange = (e) => {
     setInfo((prev) => ({ ...prev, [e.target.id]: e.target.value }));
   };
 
-  // post the usestate to database
+  const handleFileChange = (e) => {
+    setFiles(e.target.files);
+  };
+
   const handleClick = async (e) => {
     e.preventDefault();
 
-    var newEntry;
+    const list = await Promise.all(
+      Array.from(files).map(async (file) => {
+        const data = new FormData();
+        data.append("file", file);
+        data.append("upload_preset", "mesgna");
 
-    if (files) {
-      const list = await Promise.all(
-        Object.values(files).map(async (file) => {
-          const data = new FormData();
-          data.append("file", file);
-          data.append("upload_preset", "upload");
-          const uploadRes = await axios.post(
-            "https://api.cloudinary.com/v1_1/<your_cloudinary_key>/image/upload",
-            data,
-            { withcredentials: false }
-          );
-          const { url } = uploadRes.data;
-          return url;
-        })
-      );
+        const uploadRes = await axios.post(
+          "https://api.cloudinary.com/v1_1/mesgna/image/upload",
+          data,
+          { withCredentials: false }
+        );
 
-      newEntry = {
-        ...info,
-        author: user._id,
-        photos: list,
-      };
-    } else {
-      newEntry = {
-        ...info,
-        author: user._id,
-      };
-    }
+        const { url } = uploadRes.data;
+        return url;
+      })
+    );
+
+    const newEntry = {
+      ...info,
+      author: user._id,
+      photos: list,
+    };
 
     try {
       const response = await axios.post(
@@ -64,7 +56,7 @@ const Create = () => {
         }
       );
 
-      navigate(`/view/${response?.data?._id}`);
+      navigate(`/view/${response.data._id}`);
     } catch (err) {
       console.log(err);
     }
@@ -84,32 +76,20 @@ const Create = () => {
               type="file"
               id="file"
               multiple
-              onChange={(e) => setFiles(e.target.files)}
+              onChange={handleFileChange}
               style={{ display: "none" }}
             />
           </div>
           <div className="uploadedPictures">
-            <div className="upload_pic">
-              <img
-                src={files[0] ? URL.createObjectURL(files[0]) : ""}
-                alt=""
-                height="80px"
-              />
-            </div>
-            <div className="upload_pic">
-              <img
-                src={files[1] ? URL.createObjectURL(files[1]) : ""}
-                alt=""
-                height="80px"
-              />
-            </div>
-            <div className="upload_pic">
-              <img
-                src={files[2] ? URL.createObjectURL(files[2]) : ""}
-                alt=""
-                height="80px"
-              />
-            </div>
+            {Array.from(files).map((file, index) => (
+              <div className="upload_pic" key={index}>
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt=""
+                  height="80px"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
@@ -123,7 +103,7 @@ const Create = () => {
           />
         </div>
         <div className="input">
-          <label htmlFor="title">Location</label>
+          <label htmlFor="location">Location</label>
           <input
             onChange={handleChange}
             type="text"
