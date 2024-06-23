@@ -18,49 +18,62 @@ const Create = () => {
   };
 
   const handleFileChange = (e) => {
-    setFiles(e.target.files);
+    const newFiles = Array.from(e.target.files);
+    setFiles((prevFiles)=>
+    [...prevFiles, ...newFiles]);
   };
 
   const handleClick = async (e) => {
     e.preventDefault();
 
     const list = await Promise.all(
-      Array.from(files).map(async (file) => {
-        const data = new FormData();
-        data.append("file", file);
-        data.append("upload_preset", "mesgna");
+        files.map(async (file) => {
+            const data = new FormData();
+            data.append("file", file);
+            data.append("upload_preset", "mesgna");
 
-        const uploadRes = await axios.post(
-          "https://api.cloudinary.com/v1_1/mesgna/image/upload",
-          data,
-          { withCredentials: false }
-        );
+            try {
+                const uploadRes = await axios.post(
+                    "https://api.cloudinary.com/v1_1/mesgna/image/upload",
+                    data,
+                    { withCredentials: false }
+                );
 
-        const { url } = uploadRes.data;
-        return url;
-      })
+                const { url } = uploadRes.data;
+                return url;
+            } catch (uploadErr) {
+                console.error("Error uploading file:", uploadErr);
+                throw uploadErr;  // Ensure that we don't proceed if upload fails
+            }
+        })
     );
 
     const newEntry = {
-      ...info,
-      author: user._id,
-      photos: list,
+        ...info,
+        author: user._id,
+        photos: list,
     };
 
     try {
-      const response = await axios.post(
-        "http://localhost:5500/api/entries/",
-        newEntry,
-        {
-          withCredentials: false,
-        }
-      );
+        console.log("Sending new entry:", newEntry);
+        const response = await axios.post(
+            "http://localhost:5500/api/entries/",
+            newEntry,
+            {
+                withCredentials: false,
+            }
+        );
 
-      navigate(`/view/${response.data._id}`);
+        console.log("Entry created successfully:", response.data);
+        navigate(`/view/${response.data._id}`);
     } catch (err) {
-      console.log(err);
+        console.error("Error creating new entry:", err.response ? err.response.data : err.message);
+
+        // Optional: Show a user-friendly error message
+        alert(`Failed to create entry: ${err.response ? err.response.data : err.message}`);
     }
-  };
+};
+
 
   return (
     <div className="create">
