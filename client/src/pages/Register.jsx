@@ -1,20 +1,29 @@
-// client/src/pages/Register.jsx
-
-import React from "react";
+import React, { useState } from "react";
 import Navbar from "../components/Navbar";
 import "../styles/register.css";
 import { faPlusCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+
+// Email validation function
+const validateEmail = (email) => {
+  const re = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  return re.test(email);
+};
+
+// Password validation function
+const validatePassword = (password) => {
+  const re = /^(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/;
+  return re.test(password);
+};
 
 function Register() {
   const navigate = useNavigate();
 
   const [file, setFile] = useState("");
   const [info, setInfo] = useState({});
+  const [error, setError] = useState(""); // Add error state
 
   const handleChange = (e) => {
     setInfo((prev) => ({ ...prev, [e.target.id]: e.target.value }));
@@ -22,6 +31,19 @@ function Register() {
 
   const handleClick = async (e) => {
     e.preventDefault();
+    setError(""); // Clear error message before making the request
+
+    // Validate email format
+    if (!validateEmail(info.email)) {
+      setError("Invalid email format");
+      return;
+    }
+
+    // Validate password format
+    if (!validatePassword(info.password)) {
+      setError("Password must be at least 8 characters long and include a number, a symbol, and one uppercase letter");
+      return;
+    }
 
     if (file) {
       const data = new FormData();
@@ -33,7 +55,7 @@ function Register() {
         const uploadRes = await axios.post(
           "https://api.cloudinary.com/v1_1/mesgna/image/upload",
           data,
-          { withcredentials: false }
+          { withCredentials: false }
         );
 
         const { url } = uploadRes.data;
@@ -44,22 +66,24 @@ function Register() {
         };
 
         await axios.post("http://localhost:5500/api/users/register", newUser, {
-          withcredentials: false,
+          withCredentials: false,
         });
 
         navigate("/login");
       } catch (err) {
         console.log(err);
+        setError("Failed to register. Please try again."); // Set error message
       }
     } else {
       try {
         await axios.post("http://localhost:5500/api/users/register", info, {
-          withcredentials: false,
+          withCredentials: false,
         });
 
         navigate("/login");
       } catch (err) {
         console.log(err);
+        setError("Failed to register. Please try again."); // Set error message
       }
     }
   };
@@ -70,6 +94,8 @@ function Register() {
       <div className="registerCard">
         <div className="center">
           <h1>Join Us</h1>
+
+          {error && <div className="error">{error}</div>} {/* Display error message */}
 
           <form>
             <div className="image">
@@ -125,7 +151,6 @@ function Register() {
                   name="password"
                   onChange={handleChange}
                   id="password"
-                  // value={data.password}
                   required
                 />
               </div>

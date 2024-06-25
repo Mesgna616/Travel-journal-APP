@@ -126,6 +126,11 @@ form .txt_field_img {
 .signup_link a:hover {
   text-decoration: underline;
 }
+.error {
+  color: red;
+  margin-bottom: 10px;
+}
+
 
 @media screen and (max-width: 500px) {
   .registerCard .center {

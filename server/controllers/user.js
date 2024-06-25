@@ -3,72 +3,67 @@ import bcrypt from "bcryptjs";
 import { createError } from "../error.js"; 
 import jwt from "jsonwebtoken"; 
 
+// Email validation function
+const validateEmail = (email) => {
+  const re = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  return re.test(email);
+};
+
 export const register = async (req, res, next) => { 
-	try { 
+  try { 
+    // Validate email format
+    if (!validateEmail(req.body.email)) {
+      return res.status(400).send({ message: "Invalid email format" });
+    }
 
-		//check for already exist 
-		const em = await User.findOne({ 
-			email: req.body.email 
-		}); 
-		if (em) 
-			return res.status(409).send({ 
-				message: "User with given email already exists"
-			}) 
+    // Check if the email already exists
+    const em = await User.findOne({ email: req.body.email }); 
+    if (em) 
+      return res.status(409).send({ message: "User with given email already exists" });
 
+    const salt = bcrypt.genSaltSync(10); 
+    const hash = bcrypt.hashSync(req.body.password, salt); 
 
-		const salt = bcrypt.genSaltSync(10); 
-		const hash = bcrypt.hashSync(req.body.password, salt); 
+    const newUser = new User({ 
+      ...req.body, 
+      password: hash, 
+    }); 
 
-		const newUser = new User({ 
-			...req.body, 
-			password: hash, 
-		}); 
-
-		await newUser.save(); 
-		res.status(200).send("User has been created."); 
-	} catch (err) { 
-		next(err); 
-	} 
+    await newUser.save(); 
+    res.status(200).send("User has been created."); 
+  } catch (err) { 
+    next(err); 
+  } 
 }; 
 
-
 export const login = async (req, res, next) => { 
-	try { 
-		const user = await User.findOne({ 
-			username: req.body.username 
-		}); 
-		if (!user) return next(createError(404, "User not found!")); 
+  try { 
+    const user = await User.findOne({ username: req.body.username }); 
+    if (!user) return next(createError(404, "User not found!")); 
 
-		const isPasswordCorrect = await bcrypt.compare( 
-			req.body.password, 
-			user.password 
-		); 
-		if (!isPasswordCorrect) 
-			return next(createError(400, 
-				"Wrong password or username!")); 
+    const isPasswordCorrect = await bcrypt.compare(req.body.password, user.password); 
+    if (!isPasswordCorrect) 
+      return next(createError(400, "Wrong password or username!")); 
 
-		const token = jwt.sign( 
-			{ id: user._id, isAdmin: user.isAdmin }, 
-			process.env.JWT 
-		); 
+    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, process.env.JWT); 
 
-		const { password, isAdmin, ...otherDetails } = user._doc; 
-		res 
-			.cookie("access_token", token, { 
-				httpOnly: true, 
-			}) 
-			.status(200) 
-			.json({ details: { ...otherDetails }, isAdmin }); 
-	} catch (err) { 
-		next(err); 
-	} 
+    const { password, isAdmin, ...otherDetails } = user._doc; 
+    res 
+      .cookie("access_token", token, { 
+        httpOnly: true, 
+      }) 
+      .status(200) 
+      .json({ details: { ...otherDetails }, isAdmin }); 
+  } catch (err) { 
+    next(err); 
+  } 
 }; 
 
 export const deleteUser = async (req, res, next) => { 
-	try { 
-		await User.findByIdAndDelete(req.params.id); 
-		res.status(200).json("User has been deleted."); 
-	} catch (err) { 
-		next(err); 
-	} 
+  try { 
+    await User.findByIdAndDelete(req.params.id); 
+    res.status(200).json("User has been deleted."); 
+  } catch (err) { 
+    next(err); 
+  } 
 };
